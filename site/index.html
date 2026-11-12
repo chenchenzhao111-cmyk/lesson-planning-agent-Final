@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson Planning Agent — Version 4 (Gemini Live LLM)</title>
+  <style>
+    :root{color-scheme:light;--ink:#20314a;--muted:#63758c;--line:#dce5f0;--blue:#1e5799;--light:#f5f7fb;--soft:#ebf3fc;--card:white}
+    *{box-sizing:border-box}body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--light);color:var(--ink);margin:0;line-height:1.5}
+    main{max-width:980px;margin:32px auto 60px;padding:0 18px}h1{font-size:clamp(28px,4vw,38px);margin:0 0 6px;letter-spacing:-.02em}h2{font-size:22px;margin:0 0 18px}h3{font-size:17px;margin:0 0 7px}
+    p{margin:7px 0 12px}.muted{color:var(--muted)}.small{font-size:13px}.eyebrow{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--blue);font-weight:750}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;margin:22px 0;box-shadow:0 5px 20px #20314a0b}
+    label{font-weight:650;display:block;margin:14px 0 5px}input,select,textarea{width:100%;padding:11px 12px;border:1px solid #c5d2e3;border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+    textarea{min-height:74px;resize:vertical}input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid #91bbf6;outline-offset:2px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.span2{grid-column:span 2}
+    .hint{font-size:12px;color:var(--muted);margin-top:4px}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:17px}
+    button{border:0;border-radius:9px;background:var(--blue);color:white;padding:11px 19px;font:inherit;font-weight:650;cursor:pointer}button.secondary{background:#e7edf5;color:#294b72}button.outline{background:white;color:var(--blue);border:1px solid #b4c8df}button:hover{filter:brightness(.96)}button:disabled{opacity:.55;cursor:not-allowed}
+    details{margin:11px 0;padding:10px 12px;border:1px solid var(--line);border-radius:9px}summary{font-weight:650;cursor:pointer}
+    .status{display:inline-block;color:#225b91;border:1px solid #a9c6e9;background:#eef5ff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:750;letter-spacing:.05em}
+    .status.error{color:#9f302d;border-color:#ebb3b0;background:#fff0ef}.status.review{color:#8c4e08;border-color:#e6bd75;background:#fff5e4}.status.clarify{color:#60559a;border-color:#c3b9e8;background:#f3f0ff}
+    .decision{padding:14px 16px;background:#edf4ff;border-left:4px solid #3b79bd;border-radius:8px;margin:16px 0}.decision.warning{background:#fff8ee;border-left-color:#e0a14b}
+    .overview{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 16px}.pill{border-radius:20px;background:#eef2f7;padding:5px 10px;font-size:13px}
+    .phase{border:1px solid #d9e4f2;border-radius:12px;padding:16px 17px;margin:13px 0;background:#fff}.phase-head{display:flex;gap:12px;align-items:start;justify-content:space-between;border-bottom:1px solid #e6ecf3;padding-bottom:10px;margin-bottom:10px}.time{white-space:nowrap;border-radius:7px;background:#edf4ff;color:#1c5794;padding:4px 9px;font-size:13px;font-weight:750}
+    .detail{margin:8px 0}.detail strong{color:#294e7a}.tiny{font-size:12px;color:var(--muted)}.context{background:#f3f7fc;border:1px solid #dfe8f1;padding:12px 14px;border-radius:9px;margin:12px 0}
+    .example{background:#f8f9fc;border-radius:8px;padding:12px 14px;margin:8px 0;white-space:pre-line;border:1px solid #e7ebf3}
+    .note{color:#4f617b;border-top:1px solid #e5edf6;padding-top:12px;margin-top:15px;font-size:13px}.sr-only{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+    .footer{font-size:13px;color:var(--muted);max-width:860px}@media(max-width:640px){.fields{grid-template-columns:1fr}.span2{grid-column:auto}.panel{padding:17px}.phase-head{flex-direction:column;gap:3px}}
+    @media print{body{background:white}.form-panel,.actions,.footer{display:none}.panel{box-shadow:none;border:0}main{margin:0;max-width:100%}.phase{break-inside:avoid}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Lesson Planning Agent</h1>
+    <p class="muted">Version 4 · Live Gemini lesson generation · Rule-checked decisions · Teacher in control</p>
+  </header>
+  <section class="panel form-panel" aria-labelledby="input-title">
+    <h2 id="input-title">Describe your lesson</h2>
+    <div class="fields">
+      <div class="span2"><label for="topic">Topic *</label><input id="topic" placeholder="e.g. Evaluating Online Information" autocomplete="off"></div>
+      <div><label for="audience">Learners *</label><input id="audience" placeholder="e.g. First-year college students"></div>
+      <div><label for="duration">Duration (minutes) *</label><input id="duration" type="number" min="1" max="240" step="1" placeholder="45"></div>
+      <div><label for="setting">Teaching setting *</label><select id="setting"><option value="">Select a setting</option><option value="Online">Online</option><option value="In-person">In-person</option></select></div>
+      <div><label for="materials">Available materials (optional)</label><input id="materials" placeholder="e.g. Online chat only; no breakout rooms or slides"></div>
+      <div class="span2"><label for="objective">Learning objective / request *</label><textarea id="objective" placeholder="e.g. Compare the credibility of two online sources and support a choice with evidence."></textarea>
+      <p class="hint">Use an observable objective (e.g. compare, explain, justify). If you have restrictions, mention them in the materials field.</p></div>
+    </div>
+    <details><summary>Optional activity constraints</summary>
+      <div class="fields"><div><label for="activities">Number of requested activities</label><input type="number" id="activities" min="1" step="1" placeholder="e.g. 3"></div>
+      <div><label for="each">Minutes per activity</label><input type="number" id="each" min="1" step="1" placeholder="e.g. 10"></div></div>
+      <p class="hint">These are hard scheduling constraints. When the activity time leaves too little room for opening, explanation and assessment, the agent requests teacher review.</p>
+    </details>
+    <div class="actions"><button type="button" id="runBtn">Generate with Gemini</button><button type="button" class="secondary" id="clearBtn">Clear</button></div>
+  </section>
+  <section class="panel" id="result-panel" aria-live="polite" aria-labelledby="result-title">
+    <span id="action" class="status">AWAITING INPUT</span>
+    <h2 id="result-title" style="margin-top:12px">Agent decision</h2>
+    <div id="decision" class="decision">The server checks requirements, then calls Gemini only when generation is appropriate.</div>
+    <div id="output"></div>
+    <div class="actions" id="exportActions" hidden><button type="button" id="copyBtn" class="outline">Copy lesson plan</button><button type="button" id="printBtn" class="outline">Print / Save as PDF</button></div>
+  </section>
+  <p class="footer">This version uses rule-based validation and Gemini through a secure Netlify Function. No API key is placed in the browser. The model does not browse or verify outside facts; example materials may be fictional. Do not enter student records or sensitive data. Review the output before teaching. Gemini free-tier requests have usage limits; pricing depends on your account and model.</p>
+</main>
+<script>
+  const $=id=>document.getElementById(id);
+  function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  const inputs=['topic','audience','duration','setting','objective','materials','activities','each'];
+  let currentResult=null;
+  let busy=false;
+  function data(){return Object.fromEntries(inputs.map(id=>[id,$(id).value]));}
+  function lessonText(l){return [l.title,l.audience+' | '+l.setting+' | '+l.duration+' minutes','Objective: '+l.objective,'Approach: '+l.pack,'', 'READY-TO-USE EXAMPLE / STIMULUS',l.stimulus,'',...l.phases.flatMap((p,i)=>['PHASE '+(i+1)+' — '+p.name+' ('+p.minutes+' min)','Purpose: '+p.goal,'Teacher: '+p.teacher,'Students: '+p.students,'Evidence of learning: '+p.check,'']),'Teacher review: '+l.notes.join(' ')].join('\n');}
+  function render(r){
+    currentResult=r;
+    $('action').textContent=r.action;$('action').className='status '+(r.action==='HUMAN_REVIEW'?'review':r.action==='CLARIFY'?'clarify':r.action==='ERROR'?'error':'');
+    $('decision').textContent=r.reason;$('decision').className='decision'+(r.action==='HUMAN_REVIEW'?' warning':'');
+    let html='<p>'+escapeHTML(r.message)+'</p>';
+    if(r.lesson){const l=r.lesson;
+      html+='<h2 style="margin-top:20px;margin-bottom:5px">'+escapeHTML(l.title)+'</h2><div class="overview">'+[l.audience,l.setting,l.duration+' minutes',l.pack].map(s=>'<span class="pill">'+escapeHTML(s)+'</span>').join('')+'</div>';
+      html+='<p><strong>Learning objective:</strong> '+escapeHTML(l.objective)+'</p>';
+      html+='<div class="context"><strong>Ready-to-use example / stimulus</strong><div class="example">'+escapeHTML(l.stimulus)+'</div><div class="tiny">Hypothetical examples or teacher-created prompts, not verified outside sources.</div></div>';
+      l.phases.forEach((p,i)=>{html+='<article class="phase"><div class="phase-head"><div><div class="eyebrow">Phase '+(i+1)+'</div><h3>'+escapeHTML(p.name)+'</h3></div><div class="time">'+p.minutes+' min</div></div>';
+        for(const [label,key] of [['Learning purpose','goal'],['Teacher action','teacher'],['Learner task','students'],['Evidence / check','check']])html+='<p class="detail"><strong>'+label+':</strong> '+escapeHTML(p[key])+'</p>';html+='</article>';});
+      html+='<div class="note"><strong>Teacher review notes</strong><ul>'+l.notes.map(n=>'<li>'+escapeHTML(n)+'</li>').join('')+'</ul></div>';
+    }
+    $('output').innerHTML=html;$('exportActions').hidden=!r.lesson;
+  }
+  function resetForm(){inputs.forEach(id=>$(id).value='');$('output').innerHTML='';$('action').textContent='AWAITING INPUT';$('action').className='status';$('decision').textContent='The server checks requirements, then calls Gemini only when generation is appropriate.';$('decision').className='decision';$('exportActions').hidden=true;currentResult=null;}
+  $('runBtn').addEventListener('click',async()=>{
+    if(busy)return;
+    busy=true;currentResult=null;$('runBtn').disabled=true;$('runBtn').textContent='Generating…';
+    $('action').textContent='PROCESSING';$('action').className='status';
+    $('decision').textContent='Checking requirements and, if appropriate, generating a live AI lesson plan…';
+    $('output').innerHTML='';$('exportActions').hidden=true;
+    $('result-panel').setAttribute('aria-busy','true');
+    try{
+      const response=await fetch('/.netlify/functions/generate-plan',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify(data())});
+      let r;
+      try{r=await response.json()}catch{throw new Error('The server returned an unreadable response. Check your Netlify function deployment.');}
+      if(!response.ok)throw new Error(r.error||'The live AI request failed.');
+      render(r);
+    }catch(err){render({action:'ERROR',reason:'Unable to generate a live lesson plan',message:err.message||'Please try again.'});}
+    finally{busy=false;$('runBtn').disabled=false;$('runBtn').textContent='Generate with Gemini';$('result-panel').removeAttribute('aria-busy');}
+  });
+  $('clearBtn').addEventListener('click',resetForm);
+  $('copyBtn').addEventListener('click',async()=>{
+    if(!currentResult?.lesson)return;
+    try{await navigator.clipboard.writeText(lessonText(currentResult.lesson));$('copyBtn').textContent='Copied';setTimeout(()=>$('copyBtn').textContent='Copy lesson plan',1600);}
+    catch(e){const box=document.createElement('textarea');box.value=lessonText(currentResult.lesson);box.style.position='fixed';box.style.top='-9999px';document.body.appendChild(box);box.select();document.execCommand('copy');box.remove();$('copyBtn').textContent='Copied';setTimeout(()=>$('copyBtn').textContent='Copy lesson plan',1600);}
+  });
+  $('printBtn').addEventListener('click',()=>window.print());
+</script>
+</body></html>
